@@ -60,6 +60,20 @@
             placeholder="Version string. (1.0.0)"
           ></b-form-input>
         </b-form-group>
+        <b-form-group
+          id="input-group-release-hash"
+          label="Release hash:"
+          label-for="input-release-hash"
+          description="Hash of the release."
+        >
+          <b-form-input
+            id="input-release-hash"
+            v-model="releaseHash"
+            required
+            placeholder="SHA-256 Hash"
+          ></b-form-input>
+        </b-form-group>
+        <b-button v-on:click="randomHash" type="Random">Random</b-button>
         <b-button type="submit" variant="primary">Release</b-button>
       </b-form>
     </b-card>
@@ -67,42 +81,16 @@
 </template>
 
 <script>
-  const Web3 = require('web3');
+  import contractArtifacts from '../assets/contract.json';
+  import getWeb3 from '../utils/getWeb3';
+
   let web3;
   let account;
-  window.addEventListener('load', async () => {
-    // Modern dapp browsers...
-    if (window.ethereum) {
-      console.log("Injecting web3 from window.ethereum.");
-      window.web3 = new Web3(ethereum);
-      try {
-        // Request account access if needed
-        await ethereum.enable();
-        // Acccounts now exposed
-        web3 = window.web3;
-        web3.eth.getAccounts((error, accounts) => {
-          account = accounts[0];
-        });
-      } catch (error) {
-        // User denied account access...
-        console.log('User denied account access.');
-      }
-    }
-    // Legacy dapp browsers...
-    else if (window.web3) {
-      console.log("Injecting web3 from web3.currentProvider.");
-      window.web3 = new Web3(web3.currentProvider);
-      web3 = window.web3;
-    }
-    // Non-dapp browsers...
-    else {
-      console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
-    }
+  getWeb3.then(results => {
+    web3 = results.web3;
+    account = results.account;
   });
-  //import {default as contract} from 'truffle-contract';
-  import contractArtifacts from '../assets/contract.json';
 
-  //const aiakosContract = contract(contractArtifacts)
   export default {
     name: 'Aiakos',
     /*beforeCreate() {
@@ -110,11 +98,13 @@
     },*/
     data() {
       return {
+        web3: null,
+        account: null,
         title: 'Aiakos: Release on the blockchain.',
         contractAddress: '0x9c253D6F4A0b9269AEce386936372236BAE10007',
         maintainerAddress: '',
         releaseVersion: '',
-        isMaintainerMsg: 'Not available.',
+        releaseHash: '',
         accounts: [{
           text: 'Select account address',
           value: null
@@ -147,10 +137,13 @@
         let contract = new web3.eth.Contract(contractArtifacts.abi);
         contract.options.address = this.contractAddress;
         contract.setProvider(web3.currentProvider);
-        contract.methods.isMaintainer(this.maintainerAddress).call({from: account});
+        contract.methods.isMaintainer(this.maintainerAddress).call();
       },
       release(evt) {
         console.log("release version: " + this.releaseVersion);
+      },
+      randomHash(evt) {
+        this.releaseHash = web3.utils.randomHex(32);
       },
       onOwnerPanelReset(evt) {
         evt.preventDefault();
