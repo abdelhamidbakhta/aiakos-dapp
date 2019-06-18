@@ -17,6 +17,18 @@
         ></b-form-input>
       </b-form-group>
     </b-modal>
+    <div>
+      <b-alert
+        :show="showAlert"
+        dismissible
+        :variant="alertVariant"
+      >
+        {{ this.alertMessage }}
+        <p class="mb-0">
+          {{ this.alertDetails}}
+        </p>
+      </b-alert>
+    </div>
     <b-card class="mt-3" header="Owner" v-if="showOwnerPanel">
 
       <b-form @submit="addMaintainer" @reset="onOwnerPanelReset">
@@ -70,6 +82,42 @@
         </b-button-toolbar>
       </b-form>
     </b-card>
+    <b-card class="mt-3" header="User">
+      <b-form @submit="checkRelease">
+        <b-button-toolbar aria-label="User toolbar">
+          <b-input-group size="m" prepend="version">
+            <b-form-input
+              id="input-release-version"
+              v-model="releaseVersion"
+              required
+              placeholder="Version string. (1.0.0)"
+            ></b-form-input>
+          </b-input-group>
+          <b-input-group size="m" prepend="hash">
+            <b-form-input
+              id="input-release-hash"
+              v-model="releaseHash"
+              class="text-right"
+              required
+              placeholder="SHA-256 Hash"
+            ></b-form-input>
+            <b-button-group size="sm" class="mr-1">
+              <b-button v-on:click="getReleaseInfo" variant="success">Info</b-button>
+            </b-button-group>
+            <b-button-group size="sm" class="mr-1">
+              <b-button type="submit" variant="primary">Check</b-button>
+            </b-button-group>
+          </b-input-group>
+        </b-button-toolbar>
+        <br/>
+        <b-table :items="this.items" :busy="this.isBusy" class="mt-3" outlined>
+          <div slot="table-busy" class="text-center text-danger my-2">
+            <b-spinner class="align-middle"></b-spinner>
+            <strong>Loading...</strong>
+          </div>
+        </b-table>
+      </b-form>
+    </b-card>
   </div>
 </template>
 
@@ -101,34 +149,80 @@
           '0xf88858b8246b4c41223354db2caca84109824f86',
           '0x6aac4573eab4adde553ea004b36e0a7594323fef'
         ],
+        isBusy: false,
+        items: [
+          {version: '', hash: '', initialized: false, approved: false},
+        ],
         showOwnerPanel: true,
-        showMaintainerPanel: true
+        showMaintainerPanel: true,
+        showAlert: false,
+        alertVariant: 'info',
+        alertMessage: '',
+        alertDetails: '',
       }
     },
     methods: {
       addMaintainer(evt) {
-        console.log(">> addMaintainer: " + this.maintainerAddress);
+        let vue = this;
         this.web3Config.contract.methods.addMaintainer(this.maintainerAddress).send({from: this.web3Config.account}, function (error, result) {
           if (error) {
-            console.log("addMaintainer error.");
-            console.log(error);
+            vue.onError('Add maintainer:', error);
           } else {
-            console.log("addMaintainer success.");
+            vue.onInfo('Maintainer added.', '');
           }
         });
       },
       isMaintainer(evt) {
-        console.log("isMaintainer: " + this.maintainerAddress);
-        this.web3Config.contract.methods.isMaintainer(this.maintainerAddress).call();
+        let vue = this;
+        this.web3Config.contract.methods.isMaintainer(this.maintainerAddress).call({from: this.web3Config.account}, function (error, result) {
+          if (error) {
+            vue.onError('Is maintainer:', error);
+          } else {
+            if(result){
+              vue.onInfo('Given account address is a maintainer', '');
+            }else{
+              vue.onInfo('Given account address is not a maintainer', '');
+            }
+          }
+        });
       },
       release(evt) {
-        console.log("release version: " + this.releaseVersion);
+        let vue = this;
         this.web3Config.contract.methods.deployRelease(this.releaseVersion, this.releaseHash).send({from: this.web3Config.account}, function (error, result) {
           if (error) {
-            console.log("release error.");
-            console.log(error);
+            vue.onError('Release:', error);
           } else {
-            console.log("release success.");
+            vue.onInfo('Release:', 'Approval has been granted to version: ' + vue.releaseVersion);
+          }
+        });
+      },
+      getReleaseInfo(evt) {
+        this.isBusy = true;
+        console.log("getReleaseInfo version: " + this.releaseVersion);
+        let vue = this;
+        this.web3Config.contract.methods.getReleaseInfo(this.releaseVersion).call({from: this.web3Config.account}, function (error, result) {
+          if (error) {
+            vue.onError('ReleaseInfo:', error);
+          } else {
+            let record =
+              {
+                Version: result[0],
+                Hash: result[1],
+                Initialized: result[2],
+                Approved: result[3],
+              };
+            vue.items.splice(0, 1, record);
+          }
+        });
+        this.isBusy = false;
+      },
+      checkRelease(evt) {
+        let vue = this;
+        this.web3Config.contract.methods.checkRelease(this.releaseVersion, this.releaseHash).send({from: this.web3Config.account}, function (error, result) {
+          if (error) {
+            vue.onError('Check release:', error);
+          } else {
+            vue.onInfo('Release ' + vue.releaseVersion + ' has been approved.');
           }
         });
       },
@@ -144,7 +238,24 @@
         this.$nextTick(() => {
           this.showOwnerPanel = true
         })
-      }
+      },
+      onError(message, details){
+          this.showAlert = true;
+          this.alertVariant = 'danger';
+          this.alertMessage = message;
+          this.alertDetails = details;
+      },
+      onInfo(message, details){
+        this.showAlert = true;
+        this.alertVariant = 'info';
+        this.alertMessage = message;
+        this.alertDetails = details;
+      },
+      clearAlert(){
+        this.showAlert = false;
+        this.alertMessage = '';
+        this.alertDetails = '';
+      },
     }
   }
 </script>
