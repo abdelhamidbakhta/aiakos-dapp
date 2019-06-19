@@ -64,6 +64,14 @@
               placeholder="Version string. (1.0.0)"
             ></b-form-input>
           </b-input-group>
+          <b-input-group size="m">
+              <b-form-file
+                v-model="releaseFile"
+                v-on:input="computeReleaseHash"
+                placeholder="Choose a file..."
+                drop-placeholder="Drop file here..."
+              ></b-form-file>
+          </b-input-group>
           <b-input-group size="m" prepend="hash">
             <b-form-input
               id="input-release-hash"
@@ -74,6 +82,9 @@
             ></b-form-input>
             <b-button-group size="sm" class="mr-1">
               <b-button v-on:click="randomHash">Random</b-button>
+            </b-button-group>
+            <b-button-group size="sm" class="mr-1">
+              <b-button @click="releaseFile= null">Reset file</b-button>
             </b-button-group>
             <b-button-group size="sm" class="mr-1">
               <b-button type="submit" variant="primary">Release</b-button>
@@ -101,22 +112,23 @@
               required
               placeholder="SHA-256 Hash"
             ></b-form-input>
-            <b-button-group size="sm" class="mr-1">
-              <b-button v-on:click="getReleaseInfo" variant="success">Info</b-button>
-            </b-button-group>
-            <b-button-group size="sm" class="mr-1">
-              <b-button type="submit" variant="primary">Check</b-button>
-            </b-button-group>
           </b-input-group>
+          <b-button-group size="sm" class="mr-1">
+            <b-button v-on:click="getReleaseInfo" variant="success">Info</b-button>
+          </b-button-group>
+          <b-button-group size="sm" class="mr-1">
+            <b-button type="submit" variant="primary">Check</b-button>
+          </b-button-group>
         </b-button-toolbar>
         <br/>
-        <b-table :items="this.items" :busy="this.isBusy" class="mt-3" outlined>
-          <div slot="table-busy" class="text-center text-danger my-2">
-            <b-spinner class="align-middle"></b-spinner>
-            <strong>Loading...</strong>
-          </div>
-        </b-table>
+
       </b-form>
+      <b-table :items="this.items" :busy="this.isBusy" class="mt-3" outlined>
+        <div slot="table-busy" class="text-center text-danger my-2">
+          <b-spinner class="align-middle"></b-spinner>
+          <strong>Loading...</strong>
+        </div>
+      </b-table>
     </b-card>
   </div>
 </template>
@@ -124,6 +136,9 @@
 <script>
   import contractArtifacts from '../assets/contract.json';
   import getWeb3 from '../utils/getWeb3';
+  import arrayBufferToWordArray from '../utils/hex'
+
+  const CryptoJS = require("crypto-js");
 
   export default {
     name: 'Aiakos',
@@ -141,6 +156,7 @@
         maintainerAddress: '',
         releaseVersion: '',
         releaseHash: '',
+        releaseFile: null,
         accounts: [{
           text: 'Select account address',
           value: null
@@ -178,9 +194,9 @@
           if (error) {
             vue.onError('Is maintainer:', error);
           } else {
-            if(result){
+            if (result) {
               vue.onInfo('Given account address is a maintainer', '');
-            }else{
+            } else {
               vue.onInfo('Given account address is not a maintainer', '');
             }
           }
@@ -226,6 +242,18 @@
           }
         });
       },
+      computeReleaseHash(evt) {
+        let vue = this;
+        if (vue.releaseFile != null) {
+          const reader = new FileReader();
+          reader.onload = function (event) {
+            const data = event.target.result;
+            const hash = CryptoJS.SHA256(arrayBufferToWordArray(data));
+            vue.releaseHash = '0x' + hash.toString(CryptoJS.enc.Hex);
+          };
+          reader.readAsArrayBuffer(vue.releaseFile);
+        }
+      },
       randomHash(evt) {
         this.releaseHash = web3.utils.randomHex(32);
       },
@@ -239,19 +267,19 @@
           this.showOwnerPanel = true
         })
       },
-      onError(message, details){
-          this.showAlert = true;
-          this.alertVariant = 'danger';
-          this.alertMessage = message;
-          this.alertDetails = details;
+      onError(message, details) {
+        this.showAlert = true;
+        this.alertVariant = 'danger';
+        this.alertMessage = message;
+        this.alertDetails = details;
       },
-      onInfo(message, details){
+      onInfo(message, details) {
         this.showAlert = true;
         this.alertVariant = 'info';
         this.alertMessage = message;
         this.alertDetails = details;
       },
-      clearAlert(){
+      clearAlert() {
         this.showAlert = false;
         this.alertMessage = '';
         this.alertDetails = '';
