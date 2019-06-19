@@ -1,9 +1,13 @@
 <template>
   <div id="app-owner">
-    <h1>{{ title }}</h1>
-    <b-button v-b-modal.modal-1>Settings</b-button>
-    <b-modal id="modal-1" title="BootstrapVue">
-      <p class="my-4">Aiakos configuration</p>
+    <h2>{{ title }}
+      <b-badge>
+        <b-button v-b-modal.modal-1>
+          <v-icon name="cogs" scale="2" />
+        </b-button>
+      </b-badge>
+    </h2>
+    <b-modal id="modal-1" title="Configuration">
       <b-form-group
         id="input-contract-address"
         label="Contract address:"
@@ -65,12 +69,12 @@
             ></b-form-input>
           </b-input-group>
           <b-input-group size="m">
-              <b-form-file
-                v-model="releaseFile"
-                v-on:input="computeReleaseHash"
-                placeholder="Choose a file..."
-                drop-placeholder="Drop file here..."
-              ></b-form-file>
+            <b-form-file
+              v-model="releaseFile"
+              v-on:input="computeReleaseHash"
+              placeholder="Choose a file..."
+              drop-placeholder="Drop file here..."
+            ></b-form-file>
           </b-input-group>
           <b-input-group size="m" prepend="hash">
             <b-form-input
