@@ -4,11 +4,11 @@
 
 Assuming the following file tree structure:
 
-|— aiakos
-
- 		|— aiakos-dapp
-
-​		 |— awakes-contracts
+```
+├── aiakos
+│   ├── aiakos-contracts
+│   ├── aiakos-dapp
+```
 
 ```bash
 # working directory: aiakos
