@@ -1,26 +1,26 @@
 <template>
-  <div id="app-owner">
-    <h2>{{ title }}
-      <b-badge>
-        <b-button v-b-modal.modal-1>
-          <v-icon name="cogs" scale="2" />
-        </b-button>
-      </b-badge>
-    </h2>
-    <b-modal id="modal-1" title="Configuration">
-      <b-form-group
-        id="input-contract-address"
-        label="Contract address:"
-        label-for="input-contract-address"
-        description="Address of the contract."
-      >
-        <b-form-input
+  <div id="content">
+    <div>
+      <h1>Aiakos </h1>
+      <h3>Release on the blockchain.</h3>
+      <h6 v-b-modal.modal-1>
+        <v-icon name="cogs" scale="2"/>
+      </h6>
+      <b-modal id="modal-1" title="Configuration">
+        <b-form-group
           id="input-contract-address"
-          v-model="contractAddress"
-          required
-        ></b-form-input>
-      </b-form-group>
-    </b-modal>
+          label="Contract address:"
+          label-for="input-contract-address"
+          description="Address of the contract."
+        >
+          <b-form-input
+            id="input-contract-address"
+            v-model="contractAddress"
+            required
+          ></b-form-input>
+        </b-form-group>
+      </b-modal>
+    </div>
     <div>
       <b-alert
         :show="showAlert"
@@ -33,107 +33,116 @@
         </p>
       </b-alert>
     </div>
-    <b-card class="mt-3" header="Owner" v-if="showOwnerPanel">
+    <div id="main">
+      <b-tabs content-class="mt-3">
+        <b-tab title="Owner">
+          <p>
+            <b-form @submit="addMaintainer" @reset="onOwnerPanelReset">
+              <b-button-toolbar aria-label="Owner toolbar">
+                <b-input-group size="m" prepend="maintainer">
+                  <b-form-select
+                    id="input-maintainer-address"
+                    v-model="maintainerAddress"
+                    :options="accounts"
+                    required
+                  ></b-form-select>
+                  <b-button-group size="sm" class="mr-1">
+                    <b-button type="submit" variant="primary">Add maintainer</b-button>
+                  </b-button-group>
+                  <b-button-group size="sm" class="mr-1">
+                    <b-button v-on:click="isMaintainer" variant="success">Is maintainer</b-button>
+                  </b-button-group>
+                  <b-button-group size="sm" class="mr-1">
+                    <b-button type="reset" variant="danger">Reset</b-button>
+                  </b-button-group>
+                </b-input-group>
+              </b-button-toolbar>
+            </b-form>
+          </p>
+        </b-tab>
+        <b-tab title="Maintainer">
+          <p>
+            <b-form @submit="release">
+              <b-button-toolbar aria-label="Release toolbar">
+                <b-input-group size="m" prepend="version">
+                  <b-form-input
+                    id="input-release-version"
+                    v-model="releaseVersion"
+                    required
+                    placeholder="Version string. (1.0.0)"
+                  ></b-form-input>
+                </b-input-group>
+                <b-input-group size="m">
+                  <b-form-file
+                    v-model="releaseFile"
+                    v-on:input="computeReleaseHash"
+                    placeholder="Choose a file..."
+                    drop-placeholder="Drop file here..."
+                  ></b-form-file>
+                </b-input-group>
+                <b-input-group size="m" prepend="hash">
+                  <b-form-input
+                    id="input-release-hash"
+                    v-model="releaseHash"
+                    class="text-right"
+                    required
+                    placeholder="SHA-256 Hash"
+                  ></b-form-input>
+                  <b-button-group size="sm" class="mr-1">
+                    <b-button v-on:click="randomHash">Random</b-button>
+                  </b-button-group>
+                  <b-button-group size="sm" class="mr-1">
+                    <b-button @click="releaseFile= null">Reset file</b-button>
+                  </b-button-group>
+                  <b-button-group size="sm" class="mr-1">
+                    <b-button type="submit" variant="primary">Release</b-button>
+                  </b-button-group>
+                </b-input-group>
+              </b-button-toolbar>
+            </b-form>
+          </p>
+        </b-tab>
+        <b-tab title="User">
+          <p>
+            <b-form @submit="checkRelease">
+              <b-button-toolbar aria-label="User toolbar">
+                <b-input-group size="m" prepend="version">
+                  <b-form-input
+                    id="input-release-version"
+                    v-model="releaseVersion"
+                    required
+                    placeholder="Version string. (1.0.0)"
+                  ></b-form-input>
+                </b-input-group>
+                <b-input-group size="m" prepend="hash">
+                  <b-form-input
+                    id="input-release-hash"
+                    v-model="releaseHash"
+                    class="text-right"
+                    required
+                    placeholder="SHA-256 Hash"
+                  ></b-form-input>
+                </b-input-group>
+                <b-button-group size="sm" class="mr-1">
+                  <b-button v-on:click="getReleaseInfo" variant="success">Info</b-button>
+                </b-button-group>
+                <b-button-group size="sm" class="mr-1">
+                  <b-button type="submit" variant="primary">Check</b-button>
+                </b-button-group>
+              </b-button-toolbar>
+              <br/>
 
-      <b-form @submit="addMaintainer" @reset="onOwnerPanelReset">
-        <b-button-toolbar aria-label="Owner toolbar">
-          <b-input-group size="m" prepend="maintainer">
-            <b-form-select
-              id="input-maintainer-address"
-              v-model="maintainerAddress"
-              :options="accounts"
-              required
-            ></b-form-select>
-            <b-button-group size="sm" class="mr-1">
-              <b-button type="submit" variant="primary">Add maintainer</b-button>
-            </b-button-group>
-            <b-button-group size="sm" class="mr-1">
-              <b-button v-on:click="isMaintainer" variant="success">Is maintainer</b-button>
-            </b-button-group>
-            <b-button-group size="sm" class="mr-1">
-              <b-button type="reset" variant="danger">Reset</b-button>
-            </b-button-group>
-          </b-input-group>
-        </b-button-toolbar>
-      </b-form>
-    </b-card>
-    <b-card class="mt-3" header="Maintainer" v-if="showMaintainerPanel">
-      <b-form @submit="release">
-        <b-button-toolbar aria-label="Release toolbar">
-          <b-input-group size="m" prepend="version">
-            <b-form-input
-              id="input-release-version"
-              v-model="releaseVersion"
-              required
-              placeholder="Version string. (1.0.0)"
-            ></b-form-input>
-          </b-input-group>
-          <b-input-group size="m">
-            <b-form-file
-              v-model="releaseFile"
-              v-on:input="computeReleaseHash"
-              placeholder="Choose a file..."
-              drop-placeholder="Drop file here..."
-            ></b-form-file>
-          </b-input-group>
-          <b-input-group size="m" prepend="hash">
-            <b-form-input
-              id="input-release-hash"
-              v-model="releaseHash"
-              class="text-right"
-              required
-              placeholder="SHA-256 Hash"
-            ></b-form-input>
-            <b-button-group size="sm" class="mr-1">
-              <b-button v-on:click="randomHash">Random</b-button>
-            </b-button-group>
-            <b-button-group size="sm" class="mr-1">
-              <b-button @click="releaseFile= null">Reset file</b-button>
-            </b-button-group>
-            <b-button-group size="sm" class="mr-1">
-              <b-button type="submit" variant="primary">Release</b-button>
-            </b-button-group>
-          </b-input-group>
-        </b-button-toolbar>
-      </b-form>
-    </b-card>
-    <b-card class="mt-3" header="User">
-      <b-form @submit="checkRelease">
-        <b-button-toolbar aria-label="User toolbar">
-          <b-input-group size="m" prepend="version">
-            <b-form-input
-              id="input-release-version"
-              v-model="releaseVersion"
-              required
-              placeholder="Version string. (1.0.0)"
-            ></b-form-input>
-          </b-input-group>
-          <b-input-group size="m" prepend="hash">
-            <b-form-input
-              id="input-release-hash"
-              v-model="releaseHash"
-              class="text-right"
-              required
-              placeholder="SHA-256 Hash"
-            ></b-form-input>
-          </b-input-group>
-          <b-button-group size="sm" class="mr-1">
-            <b-button v-on:click="getReleaseInfo" variant="success">Info</b-button>
-          </b-button-group>
-          <b-button-group size="sm" class="mr-1">
-            <b-button type="submit" variant="primary">Check</b-button>
-          </b-button-group>
-        </b-button-toolbar>
-        <br/>
-
-      </b-form>
-      <b-table :items="this.items" :busy="this.isBusy" class="mt-3" outlined>
-        <div slot="table-busy" class="text-center text-danger my-2">
-          <b-spinner class="align-middle"></b-spinner>
-          <strong>Loading...</strong>
-        </div>
-      </b-table>
-    </b-card>
+            </b-form>
+            <b-table :items="this.items" :busy="this.isBusy" class="mt-3" outlined>
+              <div slot="table-busy" class="text-center text-danger my-2">
+                <b-spinner class="align-middle"></b-spinner>
+                <strong>Loading...</strong>
+              </div>
+            </b-table>
+          </p>
+        </b-tab>
+      </b-tabs>
+    </div>
   </div>
 </template>
 
@@ -155,7 +164,6 @@
     data() {
       return {
         web3Config: null,
-        title: 'Aiakos: Release on the blockchain.',
         contractAddress: '0x9c253D6F4A0b9269AEce386936372236BAE10007',
         maintainerAddress: '',
         releaseVersion: '',
@@ -173,12 +181,15 @@
         items: [
           {version: '', hash: '', initialized: false, approved: false},
         ],
-        showOwnerPanel: true,
-        showMaintainerPanel: true,
         showAlert: false,
         alertVariant: 'info',
         alertMessage: '',
         alertDetails: '',
+        options: {
+          menu: '#menu',
+          anchors: ['page1', 'page2', 'page3'],
+          sectionsColor: ['#41b883', '#ff5f45', '#0798ec']
+        },
       }
     },
     methods: {
